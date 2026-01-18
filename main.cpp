@@ -39,6 +39,19 @@ int main(int argc, char* argv[])
 		while (std::getline(inp, code))
 			filestr << code;
 		code = filestr.str();
+		int stack{};
+		for (const auto ch : code)
+		{
+			if (ch == '[')
+				++stack;
+			else if (ch == ']')
+				--stack;
+		}
+		if (stack != 0)
+		{
+			std::cerr << "Invalid input: unmatched brackets\n";
+			return 3;
+		}
 	}
 
 	std::vector<unsigned char> cells(30'000, 0);
