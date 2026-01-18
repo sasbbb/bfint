@@ -49,23 +49,21 @@ int main(int argc, char* argv[])
 
 	std::size_t i{};
 
-	std::string toPrint;
-
 	bool longSkipActive{};
 	std::size_t longSkipStack{};
+
+	bool printed{};
 
 	while ((i < code.size() || interactiveMode) 
 			&& gSignalStatus == 0)
 	{
 		if (interactiveMode && i >= code.size())
 		{
-			if (toPrint.size() != 0)
-			{
-				std::cout << toPrint << '\n';
-				toPrint.clear();
-			}
 			std::string str;
+			if (printed)
+				std::cout << '\n';
 			std::cout << "\r\x1b[1;34;32m>\x1b[0m ";
+			printed = false;
 			std::getline(std::cin, str);
 			if (std::cin.eof())
 				break;
@@ -89,10 +87,8 @@ int main(int argc, char* argv[])
 						--currentCell;
 						break;
 					case '.':
-						if (interactiveMode)
-							toPrint += cells[currentCell];
-						else
-							std::cout << cells[currentCell];
+						std::cout << cells[currentCell];
+						printed = true;
 						break;
 					case ',':
 						std::cin >> cells[currentCell];
