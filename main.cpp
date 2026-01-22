@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace
@@ -16,54 +17,91 @@ extern "C" void signalHandler(int sig)
 	gSignalStatus = sig;
 }
 
-int main(int argc, char* argv[])
+int readFile(std::string_view fileName, std::string& out)
 {
-	std::signal(SIGINT, signalHandler);
-	bool interactiveMode{};
-	if (argc < 2)
+	std::ifstream inp{static_cast<std::string>(fileName)};
+	if (!inp)
 	{
-		interactiveMode = true;
+		std::cout << "Failed to open file: " << fileName << '\n';
+		return 1;
 	}
-	std::string code;
 
-	if (!interactiveMode)
+	std::stringstream filestr;
+	while (std::getline(inp, out))
+		filestr << out;
+	out = filestr.str();
+	std::size_t stack{};
+	for (const auto ch : out)
 	{
-		std::ifstream inp{argv[1]};
-		if (!inp)
-		{
-			std::cout << "Failed to open file: " << argv[1] << '\n';
-			return 1;
-		}
+		if (ch == '[')
+			++stack;
+		else if (ch == ']')
+			--stack;
+	}
+	if (stack != 0)
+	{
+		std::cerr << "Invalid input: unmatched brackets\n";
+		return 3;
+	}
 
-		std::stringstream filestr;
-		while (std::getline(inp, code))
-			filestr << code;
-		code = filestr.str();
-		int stack{};
-		for (const auto ch : code)
+	return 0;
+}
+
+int getInput(std::string& to)
+{
+	std::string str;
+	if (!std::cin.eof())
+	{
+		std::cout << "\r\x1b[1;34;32m>\x1b[0m ";
+		std::getline(std::cin, str);
+		to += str;
+	}
+	else
+		return 5;
+
+	return 0;
+}
+
+int longSkip(std::string& code, std::size_t& index, bool printed)
+{
+	std::size_t stack{};
+	while (gSignalStatus == 0)
+	{
+		if (index >= code.size())
 		{
-			if (ch == '[')
-				++stack;
-			else if (ch == ']')
-				--stack;
+			if (printed)
+				std::cout << '\n';
+			int status{getInput(code)};
+			if (status) return status;
 		}
-		if (stack != 0)
+		if (index < code.size())
 		{
-			std::cerr << "Invalid input: unmatched brackets\n";
-			return 3;
+			switch (code[index])
+			{
+				case '[':
+					++stack;
+					break;
+				case ']':
+					--stack;
+					if (stack == 0)
+						return 0;
+					break;
+			}
+			++index;
 		}
 	}
+	return 0;
+}
+
+int runCode(std::string& code, bool interactiveMode)
+{
+	if (interactiveMode)
+		std::cout << "Brainfuck interactive console (experimental)\n";
 
 	std::vector<unsigned char> cells(30'000, 0);
 	int currentCell{};
 
-	if (interactiveMode)
-		std::cout << "Brainfuck interactive console (experimental)\n";
-
 	std::size_t i{};
-
-	bool longSkipActive{};
-	std::size_t longSkipStack{};
 
 	bool printed{};
 
@@ -72,19 +110,13 @@ int main(int argc, char* argv[])
 	{
 		if (interactiveMode && i >= code.size())
 		{
-			std::string str;
 			if (printed)
 				std::cout << '\n';
-			std::cout << "\r\x1b[1;34;32m>\x1b[0m ";
-			printed = false;
-			std::getline(std::cin, str);
-			if (std::cin.eof())
-				break;
-			code += str;
+			int status{getInput(code)};
+			if (status) return status;
 		}
 		if (i < code.size())
 		{
-			if (!longSkipActive)
 				switch (code[i])
 				{
 					case '+':
@@ -123,7 +155,7 @@ int main(int argc, char* argv[])
 							if (stack == 0 && code[localIndex] == ']')
 								i = localIndex;
 							else if (interactiveMode)
-								longSkipActive = true;
+								longSkip(code, i, printed);
 							else
 								return 2;
 						}
@@ -148,22 +180,23 @@ int main(int argc, char* argv[])
 						}
 						break;
 				}
-			else
-			{
-				switch (code[i])
-				{
-					case '[':
-						++longSkipStack;
-						break;
-					case ']':
-						if (longSkipStack == 0)
-							longSkipActive = false;
-						else
-							--longSkipStack;
-						break;
-				}
-			}
 			++i;
 		}
 	}
+	return 0;
+}
+
+int main(int argc, char* argv[])
+{
+	std::signal(SIGINT, signalHandler);
+	bool interactiveMode{argc < 2 ? true : false};
+	std::string code;
+
+	if (!interactiveMode)
+	{
+		int status{readFile(argv[1], code)};
+		if (status) return status; // if failed
+	}
+
+	return runCode(code, interactiveMode);
 }
