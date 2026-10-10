@@ -1,6 +1,7 @@
 #include <csignal>
 #include <cstddef>
 #include <cstdlib>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -8,6 +9,14 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
+#include <unistd.h>
+#endif
 
 namespace
 {
@@ -58,7 +67,8 @@ int getInput(std::string& to)
 	std::string str;
 	if (!std::cin.eof())
 	{
-		std::cout << "\r\x1b[1;34;32m>\x1b[0m ";
+		if (isatty(fileno(stdin)))
+			std::cout << "\r\x1b[1;34;32m>\x1b[0m ";
 		std::getline(std::cin, str);
 		to += str;
 	}
@@ -75,7 +85,7 @@ int longSkip(std::string& code, std::size_t& index, bool& printed)
 	{
 		if (index >= code.size())
 		{
-			if (printed)
+			if (printed && isatty(fileno(stdin)))
 				std::cout << '\n';
 			printed = false;
 			int status{getInput(code)};
@@ -102,8 +112,8 @@ int longSkip(std::string& code, std::size_t& index, bool& printed)
 
 int runCode(std::string& code, bool interactiveMode)
 {
-	if (interactiveMode)
-		std::cout << "Brainfuck interactive console (experimental)\n";
+	if (interactiveMode && isatty(fileno(stdin)))
+		std::cout << "Brainfuck interactive console\n";
 
 	gCellsPtr = new std::vector<unsigned char>(30'000, 0);
 	std::vector<unsigned char>& cells{*gCellsPtr};
