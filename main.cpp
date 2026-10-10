@@ -111,12 +111,10 @@ int main(int argc, char* argv[])
 						if (cells[currentCell] == 0)
 						{ // move past the corresponding bracket
 							std::size_t stack{};
-							std::ptrdiff_t localIndex{
-								static_cast<std::ptrdiff_t>(i)
-							};
+							std::size_t localIndex{i};
 							for (++localIndex; !(code[localIndex] == ']'
 										&& stack == 0)
-									&& localIndex < static_cast<std::ptrdiff_t>(code.size());
+									&& localIndex < code.size();
 									++localIndex)
 							{
 								if (code[localIndex] == '[') ++stack;
@@ -134,10 +132,10 @@ int main(int argc, char* argv[])
 						if (cells[currentCell] != 0)
 						{ // move past the corresponding bracket
 							std::size_t stack{};
-							std::ptrdiff_t localIndex{static_cast<std::ptrdiff_t>(i)};
+							std::size_t localIndex{i};
 							for (--localIndex; !(code[localIndex] == '['
 										&& stack == 0)
-									&& localIndex >= 0;
+									&& localIndex != 0;
 									--localIndex)
 							{
 								if (code[localIndex] == ']') ++stack;
@@ -145,11 +143,8 @@ int main(int argc, char* argv[])
 							}
 							if (stack == 0 && code[localIndex] == '[')
 								i = localIndex;
-							else
-							{
-								if (!interactiveMode)
-									return 2;
-							}
+							else if (!interactiveMode)
+								return 2;
 						}
 						break;
 				}
