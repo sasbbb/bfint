@@ -89,7 +89,10 @@ int main(int argc, char* argv[])
 						--currentCell;
 						break;
 					case '.':
-						toPrint += cells[currentCell];
+						if (interactiveMode)
+							toPrint += cells[currentCell];
+						else
+							std::cout << cells[currentCell];
 						break;
 					case ',':
 						std::cin >> cells[currentCell];
