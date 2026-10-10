@@ -91,7 +91,8 @@ int main(int argc, char* argv[])
 						printed = true;
 						break;
 					case ',':
-						std::cin >> cells[currentCell];
+						cells[currentCell] =
+							static_cast<unsigned char>(std::cin.get());
 						break;
 					case '[':
 						if (cells[currentCell] == 0)
