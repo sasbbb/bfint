@@ -1,5 +1,6 @@
 #include <csignal>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -10,12 +11,15 @@
 
 namespace
 {
-	volatile std::sig_atomic_t gSignalStatus{};
+	std::string* gCodePtr;
+	std::vector<unsigned char>* gCellsPtr;
 }
 
-extern "C" void signalHandler(int sig)
+extern "C" void signalHandler(int)
 {
-	gSignalStatus = sig;
+	delete gCodePtr;
+	delete gCellsPtr;
+	std::exit(0);
 }
 
 int readFile(std::string_view fileName, std::string& out)
@@ -66,7 +70,7 @@ int getInput(std::string& to)
 int longSkip(std::string& code, std::size_t& index, bool& printed)
 {
 	std::size_t stack{};
-	while (gSignalStatus == 0)
+	while (true)
 	{
 		if (index >= code.size())
 		{
@@ -100,15 +104,15 @@ int runCode(std::string& code, bool interactiveMode)
 	if (interactiveMode)
 		std::cout << "Brainfuck interactive console (experimental)\n";
 
-	std::vector<unsigned char> cells(30'000, 0);
+	gCellsPtr = new std::vector<unsigned char>(30'000, 0);
+	std::vector<unsigned char>& cells{*gCellsPtr};
 	int currentCell{};
 
 	std::size_t i{};
 
 	bool printed{};
 
-	while ((i < code.size() || interactiveMode) 
-			&& gSignalStatus == 0)
+	while (i < code.size() || interactiveMode)
 	{
 		if (interactiveMode && i >= code.size())
 		{
@@ -258,12 +262,12 @@ int main(int argc, char* argv[])
 {
 	std::signal(SIGINT, signalHandler);
 	bool interactiveMode{argc < 2 ? true : false};
-	std::string code;
+	gCodePtr = new std::string;
 
 	{
-		int status{processArgs(argc, argv, code)};
+		int status{processArgs(argc, argv, *gCodePtr)};
 		if (status != 0) return status;
 	}
 
-	return runCode(code, interactiveMode);
+	return runCode(*gCodePtr, interactiveMode);
 }
