@@ -62,7 +62,7 @@ int getInput(std::string& to)
 	return 0;
 }
 
-int longSkip(std::string& code, std::size_t& index, bool printed)
+int longSkip(std::string& code, std::size_t& index, bool& printed)
 {
 	std::size_t stack{};
 	while (gSignalStatus == 0)
@@ -71,6 +71,7 @@ int longSkip(std::string& code, std::size_t& index, bool printed)
 		{
 			if (printed)
 				std::cout << '\n';
+			printed = false;
 			int status{getInput(code)};
 			if (status) return status;
 		}
@@ -112,6 +113,7 @@ int runCode(std::string& code, bool interactiveMode)
 		{
 			if (printed)
 				std::cout << '\n';
+			printed = false;
 			int status{getInput(code)};
 			if (status) return status;
 		}
