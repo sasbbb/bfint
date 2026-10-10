@@ -45,15 +45,24 @@ int readFile(std::string_view fileName, std::string& out)
 	while (std::getline(inp, out))
 		filestr << out;
 	out += filestr.str();
-	std::size_t stack{};
+	std::vector<char> stack;
+	stack.reserve(32);
 	for (const auto ch : out)
 	{
 		if (ch == '[')
-			++stack;
+			stack.emplace_back('[');
 		else if (ch == ']')
-			--stack;
+		{
+			if (!stack.empty() && stack.back() == '[')
+				stack.pop_back();
+			else 
+			{
+				stack.emplace_back(']');
+				break;
+			}
+		}
 	}
-	if (stack != 0)
+	if (stack.size() != 0)
 	{
 		std::cerr << "Invalid input: unmatched brackets\n";
 		return 3;
