@@ -283,5 +283,8 @@ int main(int argc, char* argv[])
 		if (status != 0) return status;
 	}
 
-	return runCode(*gCodePtr, interactiveMode);
+	int status{runCode(*gCodePtr, interactiveMode)};
+	if (status == 5)
+		status = 0;
+	return status;
 }
