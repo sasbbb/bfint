@@ -1,5 +1,6 @@
 #include <csignal>
 #include <cstddef>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -29,7 +30,7 @@ int readFile(std::string_view fileName, std::string& out)
 	std::stringstream filestr;
 	while (std::getline(inp, out))
 		filestr << out;
-	out = filestr.str();
+	out += filestr.str();
 	std::size_t stack{};
 	for (const auto ch : out)
 	{
@@ -188,16 +189,80 @@ int runCode(std::string& code, bool interactiveMode)
 	return 0;
 }
 
+int processArgs(int argc, char* argv[], std::string& code)
+{
+	unsigned char flags{};
+
+	/* Flags guide
+	 * bit #
+	 *
+	 * 0: --help
+	 * 1: -e, --exec
+	 */
+
+	int execPos{};
+
+	for (int i{1}; i < argc; ++i)
+	{
+		if (argv[i][0] == '-' && argv[i][1] == '-') // long option
+		{
+			flags |= !std::strcmp(argv[i], "--help");
+			{
+				int exec{std::strcmp(argv[i], "--exec")};
+				flags |= !exec << 1;
+				if (!exec)
+					execPos = i + 1;
+			}
+		}
+		else if (argv [i][0] == '-')
+			for (int j{1}; argv[i][j] != 0; ++j)
+			{
+				switch (argv[i][j])
+				{
+					case 'e':
+						flags |= 1 << 1;
+						execPos = i + 1;
+						break;
+					default:
+						std::cout << "Invalid option: -" << argv[i][j] << '\n';
+						return 4;
+				}
+			}
+		else if (i != execPos)
+			readFile(argv[i], code);
+	}
+
+	if (flags & 1)
+	{
+		std::cout << "Usage: " << argv[0] << " [OPTIONS] [FILES]\n\n"
+					 "Options:\n"
+					 "\t-e, --exec\t\texecute the next argument as code\n"
+					 "\t--help\t\t\tshow this help\n";
+		return 0;
+	}
+	if (flags & 1 << 1)
+	{
+		if (execPos < argc)
+			code += argv[execPos];
+		else
+		{
+			std::cout << "Option -e requires another argument\n";
+			return 4;
+		}
+	}
+
+	return 0;
+}
+
 int main(int argc, char* argv[])
 {
 	std::signal(SIGINT, signalHandler);
 	bool interactiveMode{argc < 2 ? true : false};
 	std::string code;
 
-	if (!interactiveMode)
 	{
-		int status{readFile(argv[1], code)};
-		if (status) return status; // if failed
+		int status{processArgs(argc, argv, code)};
+		if (status != 0) return status;
 	}
 
 	return runCode(code, interactiveMode);
