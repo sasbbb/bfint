@@ -19,6 +19,7 @@ extern "C" void signalHandler(int)
 {
 	delete gCodePtr;
 	delete gCellsPtr;
+	std::cout << '\n';
 	std::exit(0);
 }
 
