@@ -73,7 +73,10 @@ int getInput(std::string& to)
 		to += str;
 	}
 	else
+	{
+		std::cout << '\n';
 		return 5;
+	}
 
 	return 0;
 }
@@ -127,7 +130,7 @@ int runCode(std::string& code, bool interactiveMode)
 	{
 		if (interactiveMode && i >= code.size())
 		{
-			if (printed)
+			if (printed && isatty(fileno(stdin)))
 				std::cout << '\n';
 			printed = false;
 			int status{getInput(code)};
