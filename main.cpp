@@ -16,13 +16,13 @@
 #	define fileno _fileno
 #else
 #	include <unistd.h>
-#endif
+#endif // _WIN32
 
 
 #ifdef BFINT_READLINE
 #	include <readline/readline.h>
 #	include <readline/history.h>
-#endif
+#endif // BFINT_READLINE
 
 
 namespace
@@ -94,7 +94,7 @@ int getInput(std::string& to)
 			}
 			add_history(str);
 		} else {
-#endif
+#endif // BFINT_READLINE
 			if (isatty(fileno(stdin)))
 				std::cout << prompt;
 			std::string istr;
@@ -102,7 +102,7 @@ int getInput(std::string& to)
 			str = istr.c_str();
 #ifdef BFINT_READLINE
 		}
-#endif
+#endif // BFINT_READLINE
 		to += str;
 	}
 	else
@@ -167,6 +167,8 @@ int runCode(std::string& code, bool interactiveMode)
 			if (printed && isatty(fileno(stdin)))
 				std::cout << '\n';
 			printed = false;
+			code.clear();
+			i = 0;
 			int status{getInput(code)};
 			if (status) return status;
 		}
@@ -209,10 +211,11 @@ int runCode(std::string& code, bool interactiveMode)
 						}
 						if (stack == 0 && code[localIndex] == ']')
 							i = localIndex;
-						else if (interactiveMode)
-							longSkip(code, i, printed);
-						else
-							return 2;
+						else {
+							std::cerr << (printed ? "\n" : "") << "Syntax error: unmatched brackets";
+							printed = true;
+							code.clear();
+						}
 					}
 					break;
 				case ']':
@@ -230,8 +233,12 @@ int runCode(std::string& code, bool interactiveMode)
 						}
 						if (stack == 0 && code[localIndex] == '[')
 							i = localIndex;
-						else if (!interactiveMode)
-							return 2;
+						else if (interactiveMode) {
+							std::cerr << (printed ? "\n" : "") << "Syntax error: unmatched brackets";
+							printed = true;
+							code.clear();
+						}
+						else return 2;
 					}
 					break;
 			}
@@ -313,7 +320,7 @@ int main(int argc, char* argv[])
 
 #ifdef BFINT_READLINE
 	using_history();
-#endif
+#endif // BFINT_READLINE
 
 	gCodePtr = new std::string;
 
