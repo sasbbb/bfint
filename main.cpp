@@ -11,12 +11,19 @@
 #include <vector>
 
 #ifdef _WIN32
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
+#	include <io.h>
+#	define isatty _isatty
+#	define fileno _fileno
 #else
-#include <unistd.h>
+#	include <unistd.h>
 #endif
+
+
+#ifdef BFINT_READLINE
+#	include <readline/readline.h>
+#	include <readline/history.h>
+#endif
+
 
 namespace
 {
@@ -73,12 +80,23 @@ int readFile(std::string_view fileName, std::string& out)
 
 int getInput(std::string& to)
 {
-	std::string str;
 	if (!std::cin.eof())
 	{
+		char prompt[] = "\1\x1b[1;34;32m\2>\1\x1b[0m\2 ";
+#ifdef BFINT_READLINE
+		char *str = readline(prompt);
+		if (str == nullptr)
+		{
+			std::cout << '\n';
+			return 5;
+		}
+		add_history(str);
+#else
 		if (isatty(fileno(stdin)))
-			std::cout << "\r\x1b[1;34;32m>\x1b[0m ";
+			std::cout << prompt;
+		std::string str;
 		std::getline(std::cin, str);
+#endif
 		to += str;
 	}
 	else
@@ -147,69 +165,69 @@ int runCode(std::string& code, bool interactiveMode)
 		}
 		if (i < code.size())
 		{
-				switch (code[i])
-				{
-					case '+':
-						++cells[currentCell];
-						break;
-					case '-':
-						--cells[currentCell];
-						break;
-					case '>':
-						++currentCell;
-						break;
-					case '<':
-						--currentCell;
-						break;
-					case '.':
-						std::cout << cells[currentCell];
-						printed = true;
-						break;
-					case ',':
-						cells[currentCell] =
-							static_cast<unsigned char>(std::cin.get());
-						break;
-					case '[':
-						if (cells[currentCell] == 0)
-						{ // move past the corresponding bracket
-							std::size_t stack{};
-							std::size_t localIndex{i};
-							for (++localIndex; !(code[localIndex] == ']'
-										&& stack == 0)
-									&& localIndex < code.size();
-									++localIndex)
-							{
-								if (code[localIndex] == '[') ++stack;
-								else if (code[localIndex] == ']') --stack;
-							}
-							if (stack == 0 && code[localIndex] == ']')
-								i = localIndex;
-							else if (interactiveMode)
-								longSkip(code, i, printed);
-							else
-								return 2;
+			switch (code[i])
+			{
+				case '+':
+					++cells[currentCell];
+					break;
+				case '-':
+					--cells[currentCell];
+					break;
+				case '>':
+					++currentCell;
+					break;
+				case '<':
+					--currentCell;
+					break;
+				case '.':
+					std::cout << cells[currentCell];
+					printed = true;
+					break;
+				case ',':
+					cells[currentCell] =
+						static_cast<unsigned char>(std::cin.get());
+					break;
+				case '[':
+					if (cells[currentCell] == 0)
+					{ // move past the corresponding bracket
+						std::size_t stack{};
+						std::size_t localIndex{i};
+						for (++localIndex; !(code[localIndex] == ']'
+									&& stack == 0)
+								&& localIndex < code.size();
+								++localIndex)
+						{
+							if (code[localIndex] == '[') ++stack;
+							else if (code[localIndex] == ']') --stack;
 						}
-						break;
-					case ']':
-						if (cells[currentCell] != 0)
-						{ // move past the corresponding bracket
-							std::size_t stack{};
-							std::size_t localIndex{i};
-							for (--localIndex; !(code[localIndex] == '['
-										&& stack == 0)
-									&& localIndex != 0;
-									--localIndex)
-							{
-								if (code[localIndex] == ']') ++stack;
-								else if (code[localIndex] == '[') --stack;
-							}
-							if (stack == 0 && code[localIndex] == '[')
-								i = localIndex;
-							else if (!interactiveMode)
-								return 2;
+						if (stack == 0 && code[localIndex] == ']')
+							i = localIndex;
+						else if (interactiveMode)
+							longSkip(code, i, printed);
+						else
+							return 2;
+					}
+					break;
+				case ']':
+					if (cells[currentCell] != 0)
+					{ // move past the corresponding bracket
+						std::size_t stack{};
+						std::size_t localIndex{i};
+						for (--localIndex; !(code[localIndex] == '['
+									&& stack == 0)
+								&& localIndex != 0;
+								--localIndex)
+						{
+							if (code[localIndex] == ']') ++stack;
+							else if (code[localIndex] == '[') --stack;
 						}
-						break;
-				}
+						if (stack == 0 && code[localIndex] == '[')
+							i = localIndex;
+						else if (!interactiveMode)
+							return 2;
+					}
+					break;
+			}
 			++i;
 		}
 	}
@@ -262,9 +280,9 @@ int processArgs(int argc, char* argv[], std::string& code)
 	if (flags & 1)
 	{
 		std::cout << "Usage: " << argv[0] << " [OPTIONS] [FILES]\n\n"
-					 "Options:\n"
-					 "\t-e, --exec\t\texecute the next argument as code\n"
-					 "\t--help\t\t\tshow this help\n";
+			"Options:\n"
+			"\t-e, --exec\t\texecute the next argument as code\n"
+			"\t--help\t\t\tshow this help\n";
 		return 0;
 	}
 	if (flags & 1 << 1)
@@ -285,6 +303,11 @@ int main(int argc, char* argv[])
 {
 	std::signal(SIGINT, signalHandler);
 	bool interactiveMode{argc < 2 ? true : false};
+
+#ifdef BFINT_READLINE
+	using_history();
+#endif
+
 	gCodePtr = new std::string;
 
 	{
