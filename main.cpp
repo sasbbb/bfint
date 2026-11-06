@@ -82,26 +82,33 @@ int getInput(std::string& to)
 {
 	if (!std::cin.eof())
 	{
-		char prompt[] = "\1\x1b[1;34;32m\2>\1\x1b[0m\2 ";
+		const char prompt[] = "\1\x1b[1;34;32m\2>\1\x1b[0m\2 ";
+		const char *str;
 #ifdef BFINT_READLINE
-		char *str = readline(prompt);
-		if (str == nullptr)
-		{
-			std::cout << '\n';
-			return 5;
+		if (isatty(fileno(stdin))) {
+			str = readline(prompt);
+			if (str == nullptr)
+			{
+				std::cout << '\n';
+				return 5;
+			}
+			add_history(str);
+		} else {
+#endif
+			if (isatty(fileno(stdin)))
+				std::cout << prompt;
+			std::string istr;
+			std::getline(std::cin, istr);
+			str = istr.c_str();
+#ifdef BFINT_READLINE
 		}
-		add_history(str);
-#else
-		if (isatty(fileno(stdin)))
-			std::cout << prompt;
-		std::string str;
-		std::getline(std::cin, str);
 #endif
 		to += str;
 	}
 	else
 	{
-		std::cout << '\n';
+		if (isatty(fileno(stdin)))
+			std::cout << '\n';
 		return 5;
 	}
 
@@ -302,7 +309,7 @@ int processArgs(int argc, char* argv[], std::string& code)
 int main(int argc, char* argv[])
 {
 	std::signal(SIGINT, signalHandler);
-	bool interactiveMode{argc < 2 ? true : false};
+	bool interactiveMode{argc < 2};
 
 #ifdef BFINT_READLINE
 	using_history();
