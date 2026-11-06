@@ -89,13 +89,14 @@ int getInput(std::string& to)
 			str = readline(prompt);
 			if (str == nullptr)
 			{
-				std::cout << '\n';
+				if (isatty(fileno(stdout)))
+					std::cout << '\n';
 				return 5;
 			}
 			add_history(str);
 		} else {
 #endif // BFINT_READLINE
-			if (isatty(fileno(stdin)))
+			if (isatty(fileno(stdout)))
 				std::cout << prompt;
 			std::string istr;
 			std::getline(std::cin, istr);
@@ -107,7 +108,7 @@ int getInput(std::string& to)
 	}
 	else
 	{
-		if (isatty(fileno(stdin)))
+		if (isatty(fileno(stdout)))
 			std::cout << '\n';
 		return 5;
 	}
@@ -122,7 +123,7 @@ int longSkip(std::string& code, std::size_t& index, bool& printed)
 	{
 		if (index >= code.size())
 		{
-			if (printed && isatty(fileno(stdin)))
+			if (printed && isatty(fileno(stdout)))
 				std::cout << '\n';
 			printed = false;
 			int status{getInput(code)};
@@ -149,7 +150,7 @@ int longSkip(std::string& code, std::size_t& index, bool& printed)
 
 int runCode(std::string& code, bool interactiveMode)
 {
-	if (interactiveMode && isatty(fileno(stdin)))
+	if (interactiveMode && isatty(fileno(stdout)))
 		std::cout << "Brainfuck interactive console\n";
 
 	gCellsPtr = new std::vector<unsigned char>(30'000, 0);
@@ -164,7 +165,7 @@ int runCode(std::string& code, bool interactiveMode)
 	{
 		if (interactiveMode && i >= code.size())
 		{
-			if (printed && isatty(fileno(stdin)))
+			if (printed && isatty(fileno(stdout)))
 				std::cout << '\n';
 			printed = false;
 			code.clear();
