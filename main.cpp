@@ -83,9 +83,11 @@ int getInput(std::string& to)
 	if (!std::cin.eof())
 	{
 		const char prompt[] = "\1\x1b[1;34;32m\2>\1\x1b[0m\2 ";
-		const char *str;
+		char *str;
+		bool usingReadline = false;
 #ifdef BFINT_READLINE
 		if (isatty(fileno(stdin))) {
+			usingReadline = true;
 			str = readline(prompt);
 			if (str == nullptr)
 			{
@@ -100,11 +102,14 @@ int getInput(std::string& to)
 				std::cout << prompt;
 			std::string istr;
 			std::getline(std::cin, istr);
-			str = istr.c_str();
+			str = const_cast<char*>(istr.c_str());
 #ifdef BFINT_READLINE
 		}
 #endif // BFINT_READLINE
 		to += str;
+		if (usingReadline) {
+			free(str);
+		}
 	}
 	else
 	{
