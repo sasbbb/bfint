@@ -121,38 +121,6 @@ int getInput(std::string& to)
 	return 0;
 }
 
-int longSkip(std::string& code, std::size_t& index, bool& printed)
-{
-	std::size_t stack{};
-	while (true)
-	{
-		if (index >= code.size())
-		{
-			if (printed && isatty(fileno(stdout)))
-				std::cout << '\n';
-			printed = false;
-			int status{getInput(code)};
-			if (status) return status;
-		}
-		if (index < code.size())
-		{
-			switch (code[index])
-			{
-				case '[':
-					++stack;
-					break;
-				case ']':
-					--stack;
-					if (stack == 0)
-						return 0;
-					break;
-			}
-			++index;
-		}
-	}
-	return 0;
-}
-
 int runCode(std::string& code, bool interactiveMode)
 {
 	if (interactiveMode && isatty(fileno(stdout)))
